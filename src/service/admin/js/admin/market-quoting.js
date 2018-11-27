@@ -7,7 +7,13 @@ const Shared = require('./shared_directives');
 class Level {
 }
 const MarketQuotingController = ($scope, $log, subscriberFactory, product) => {
-  const toPrice = px => px.toFixed(product.fixed);
+  const toPrice = px => {
+    let fixed = product.fixed;
+    if (fixed === null || typeof fixed === 'undefined' || fixed < 0) {
+      fixed = 3;
+    }
+    return px.toFixed(fixed);
+  };
   const toPercent = (askPx, bidPx) => ((askPx - bidPx) / askPx * 100).toFixed(2);
   const clearMarket = () => {
     $scope.levels = [];

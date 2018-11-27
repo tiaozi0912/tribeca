@@ -4,7 +4,13 @@ const angular = require('angular');
 const Models = require('../common/models');
 const Messaging = require('../common/messaging');
 const PositionController = ($scope, $log, subscriberFactory, product) => {
-  const toAmt = a => a.toFixed(product.fixed + 1);
+  const toAmt = a => {
+    let fixed = product.fixed;
+    if (fixed === null || typeof fixed === 'undefined' || fixed < 0) {
+      fixed = 3;
+    }
+    return a.toFixed(fixed + 1);
+  };
   const clearPosition = () => {
     $scope.baseCurrency = null;
     $scope.quoteCurrency = null;

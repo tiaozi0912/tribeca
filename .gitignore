@@ -13,3 +13,5 @@ test/src
 tribeca.json
 .vscode
 yarn-error.log
+yarn.lock
+src/service/admin/js/admin/bundle.min.js
