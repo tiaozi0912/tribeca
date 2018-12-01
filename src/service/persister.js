@@ -15,7 +15,9 @@ const logging_1 = require('./logging');
 function loadDb(config) {
   return mongodb.MongoClient.connect(config.GetString('MongoDbUrl'));
 }
+
 exports.loadDb = loadDb;
+
 class RepositoryPersister {
   constructor(collection, _defaultParameter, _dbName, _exchange, _pair) {
     this.collection = collection;
@@ -51,6 +53,7 @@ class RepositoryPersister {
   }
 }
 exports.RepositoryPersister = RepositoryPersister;
+
 class Persister {
   constructor(time, collection, _dbName, _exchange, _pair) {
     this.collection = collection;
@@ -58,6 +61,7 @@ class Persister {
     this._exchange = _exchange;
     this._pair = _pair;
     this._log = logging_1.default('persister');
+
     this.loadAll = (limit, query) => {
       const selector = { exchange: this._exchange, pair: this._pair };
       _.assign(selector, query);
@@ -90,6 +94,7 @@ class Persister {
       return x;
     };
     this._log = logging_1.default('persister:' + _dbName);
+
     time.setInterval(() => __awaiter(this, void 0, void 0, function* () {
       if (this._persistQueue.length === 0) { return; }
       const docs = _.map(this._persistQueue, this.converter);

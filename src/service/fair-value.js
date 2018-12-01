@@ -12,6 +12,7 @@ class FairValueEngine {
     this._fvPersister = _fvPersister;
     this.FairValueChanged = new Utils.Evt();
     this._latest = null;
+
     this.recalcFairValue = t => {
       const mkt = this._filtration.latestFilteredMarket;
       if (mkt == null) {
@@ -27,6 +28,7 @@ class FairValueEngine {
       const fv = new Models.FairValue(this.ComputeFV(ask[0], bid[0], this._qlParamRepo.latest.fvModel), t);
       this.latestFairValue = fv;
     };
+
     _qlParamRepo.NewParameters.on(() => this.recalcFairValue(_timeProvider.utcNow()));
     _filtration.FilteredMarketChanged.on(() => this.recalcFairValue(Utils.timeOrDefault(_filtration.latestFilteredMarket, _timeProvider)));
     _fvPublisher.registerSnapshot(() => (this.latestFairValue === null ? [] : [ this.latestFairValue ]));
@@ -41,14 +43,19 @@ class FairValueEngine {
     this._fvPublisher.publish(this._latest);
     if (this._latest !== null) { this._fvPersister.persist(this._latest); }
   }
+
+  // Compute the unrounded fair value based on the model
   static ComputeFVUnrounded(ask, bid, model) {
     switch (model) {
       case Models.FairValueModel.BBO:
         return (ask.price + bid.price) / 2.0;
       case Models.FairValueModel.wBBO:
         return (ask.price * ask.size + bid.price * bid.size) / (ask.size + bid.size);
+      default:
+        return (ask.price + bid.price) / 2.0;
     }
   }
+
   ComputeFV(ask, bid, model) {
     const unrounded = FairValueEngine.ComputeFVUnrounded(ask, bid, model);
     return Utils.roundNearest(unrounded, this._details.minTickIncrement);

@@ -5,6 +5,8 @@ const Utils = require('./utils');
 const _ = require('lodash');
 const moment = require('moment');
 const logging_1 = require('./logging');
+const debug = require('debug')('tribeca:positionManagement');
+
 class PositionManager {
   constructor(_details, _timeProvider, _persister, _fvAgent, _data, _shortEwma, _longEwma) {
     this._details = _details;
@@ -55,9 +57,14 @@ class TargetBasePositionManager {
     this._log = logging_1.default('positionmanager');
     this.NewTargetPosition = new Utils.Evt();
     this._latest = null;
+
     this.recomputeTargetPosition = () => {
+      debug('RecomputeTargetPosition called');
       const latestPosition = this._positionBroker.latestReport;
       const params = this._params.latest;
+
+      debug('latest QuotingParameters:', params);
+
       if (params === null || latestPosition === null) { return; }
       let targetBasePosition = params.targetBasePosition;
       if (params.autoPositionMode === Models.AutoPositionMode.EwmaBasic) {
@@ -71,6 +78,7 @@ class TargetBasePositionManager {
         this._log.info('recalculated target base position:', this.latestTargetPosition.data);
       }
     };
+
     _wrapped.registerSnapshot(() => [ this._latest ]);
     _positionBroker.NewReport.on(r => this.recomputeTargetPosition());
     _params.NewParameters.on(() => this.recomputeTargetPosition());

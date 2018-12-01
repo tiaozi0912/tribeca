@@ -4,6 +4,8 @@ const Models = require('../common/models');
 const Utils = require('./utils');
 const _ = require('lodash');
 const logging_1 = require('./logging');
+const debug = require('debug')('tribeca:quoteSender');
+
 class QuoteSender {
   constructor(_timeProvider, _quotingEngine, _statusPublisher, _quoter, _activeRepo, _positionBroker, _fv, _broker, _details) {
     this._timeProvider = _timeProvider;
@@ -35,26 +37,58 @@ class QuoteSender {
       const quote = this._quotingEngine.latestQuote;
       let askStatus = Models.QuoteStatus.Held;
       let bidStatus = Models.QuoteStatus.Held;
+      debug('quote:', quote);
+      // debug('activeRepo.latest:', this._activeRepo.latest);
+
       if (quote !== null && this._activeRepo.latest) {
-        if (quote.ask !== null && this.hasEnoughPosition(this._details.pair.base, quote.ask.size) &&
-                    (this._details.hasSelfTradePrevention || !this.checkCrossedQuotes(Models.Side.Ask, quote.ask.price))) {
-          askStatus = Models.QuoteStatus.Live;
+        if (quote.ask !== null) {
+          const hasEnoughPositionForAsk = this.hasEnoughPosition(this._details.pair.base, quote.ask.size);
+          const checkCrossedAskQuotes = this.checkCrossedQuotes(Models.Side.Ask, quote.ask.price);
+          // debug('Enough position for ask:', hasEnoughPositionForAsk);
+          // debug('checkCrossedAskQuotes:', checkCrossedAskQuotes);
+
+          if (
+            hasEnoughPositionForAsk
+             &&
+            (
+              this._details.hasSelfTradePrevention ||
+              !checkCrossedAskQuotes
+            )
+          ) {
+            askStatus = Models.QuoteStatus.Live;
+          }
         }
-        if (quote.bid !== null && this.hasEnoughPosition(this._details.pair.quote, quote.bid.size * quote.bid.price) &&
-                    (this._details.hasSelfTradePrevention || !this.checkCrossedQuotes(Models.Side.Bid, quote.bid.price))) {
-          bidStatus = Models.QuoteStatus.Live;
+        if (quote.bid !== null) {
+          const hasEnoughPositionForBid = this.hasEnoughPosition(this._details.pair.quote, quote.bid.size * quote.bid.price);
+          const checkCrossedBidQuotes = this.checkCrossedQuotes(Models.Side.Bid, quote.bid.price);
+          // debug('Enough position for bid:', hasEnoughPositionForBid);
+          // debug('checkCrossedBidQuotes:', checkCrossedBidQuotes);
+
+          if (
+            hasEnoughPositionForBid &&
+            (
+              this._details.hasSelfTradePrevention ||
+              !checkCrossedBidQuotes
+            )
+          ) {
+            bidStatus = Models.QuoteStatus.Live;
+          }
         }
       }
       let askAction;
       if (askStatus === Models.QuoteStatus.Live) {
+        debug('Update ask quote');
         askAction = this._quoter.updateQuote(new Models.Timestamped(quote.ask, t), Models.Side.Ask);
       } else {
+        debug('Cancel ask quote');
         askAction = this._quoter.cancelQuote(new Models.Timestamped(Models.Side.Ask, t));
       }
       let bidAction;
       if (bidStatus === Models.QuoteStatus.Live) {
+        debug('Update bid quote');
         bidAction = this._quoter.updateQuote(new Models.Timestamped(quote.bid, t), Models.Side.Bid);
       } else {
+        debug('Cancel bid quote');
         bidAction = this._quoter.cancelQuote(new Models.Timestamped(Models.Side.Bid, t));
       }
       this.latestStatus = new Models.TwoSidedQuoteStatus(bidStatus, askStatus);
@@ -64,7 +98,10 @@ class QuoteSender {
       return pos != null && pos.amount > minAmt;
     };
     _activeRepo.NewParameters.on(() => this.sendQuote(_timeProvider.utcNow()));
+
+    // Send quote when quote changed
     _quotingEngine.QuoteChanged.on(() => this.sendQuote(Utils.timeOrDefault(_quotingEngine.latestQuote, _timeProvider)));
+
     _statusPublisher.registerSnapshot(() => (this.latestStatus === null ? [] : [ this.latestStatus ]));
   }
   get latestStatus() { return this._latest; }

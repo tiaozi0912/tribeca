@@ -29,6 +29,7 @@ class ConfigProvider {
       return fetched;
     };
     this.inBacktestMode = false;
+    console.log('TRIBECA_BACKTEST_MODE:', process.env.TRIBECA_BACKTEST_MODE);
     this.inBacktestMode = (process.env.TRIBECA_BACKTEST_MODE || 'false') === 'true';
     const configFile = process.env.TRIBECA_CONFIG_FILE || 'tribeca.json';
     if (fs.existsSync(configFile)) {

@@ -14,8 +14,8 @@ class SafetyCalculator {
     this._persister = _persister;
     this.NewValue = new Utils.Evt();
     this._latest = null;
-    this._buys = [];
-    this._sells = [];
+    this._buys = []; // Array of trades
+    this._sells = []; // Array of trades
     this.onTrade = ut => {
       const u = _.cloneDeep(ut);
       if (this.isOlderThan(u, this._repo.latest)) { return; }
@@ -26,27 +26,41 @@ class SafetyCalculator {
       }
       this.computeQtyLimit();
     };
+
+    // Compute the tradeSafety
+    // Compute buy, sell, combined, buyPing, sellPong for tradeSafety
     this.computeQtyLimit = () => {
       const settings = this._repo.latest;
+      // buyPing， sellPong are avg price for a series of trades
       let buyPing = 0;
       let sellPong = 0;
+
+      // The accumulative buy size from the latest trades that is most close to settings.size
       let buyPq = 0;
+
+      // The accumulative sell size from the latest trades that is most close to settings.size
       let sellPq = 0;
+
       let _buyPq = 0;
       let _sellPq = 0;
+
+      // Add up buyPq and sellPq
+      // buyPq and sellPq won't be bigger than settings.size
       for (let ti = this._broker._trades.length - 1; ti > -1; ti--) {
-        if (this._broker._trades[ti].side == Models.Side.Bid && buyPq < settings.size) {
-          _buyPq = Math.min(settings.size - buyPq, this._broker._trades[ti].quantity);
-          buyPing += this._broker._trades[ti].price * _buyPq;
+        const trade = this._broker._trades[ti];
+        if (trade.side === Models.Side.Bid && buyPq < settings.size) {
+          _buyPq = Math.min(settings.size - buyPq, trade.quantity);
+          buyPing += trade.price * _buyPq;
           buyPq += _buyPq;
         }
-        if (this._broker._trades[ti].side == Models.Side.Ask && sellPq < settings.size) {
-          _sellPq = Math.min(settings.size - sellPq, this._broker._trades[ti].quantity);
-          sellPong += this._broker._trades[ti].price * _sellPq;
+        if (trade.side === Models.Side.Ask && sellPq < settings.size) {
+          _sellPq = Math.min(settings.size - sellPq, trade.quantity);
+          sellPong += trade.price * _sellPq;
           sellPq += _sellPq;
         }
         if (buyPq >= settings.size && sellPq >= settings.size) { break; }
       }
+
       if (buyPq) { buyPing /= buyPq; }
       if (sellPq) { sellPong /= sellPq; }
       const orderTrades = (input, direction) => {
@@ -55,14 +69,21 @@ class SafetyCalculator {
           .sortBy(t => direction * t.price)
           .value();
       };
+
       this._buys = orderTrades(this._buys, -1);
       this._sells = orderTrades(this._sells, 1);
+
+      // Don't count good trades against safety
+      // Remove the trades that buy.quantity equals sell.quantity
+      // So that this._buys and this._sells are the trades
+      // that not have opposite trade
       while (_.size(this._buys) > 0 && _.size(this._sells) > 0) {
         const sell = _.last(this._sells);
         const buy = _.last(this._buys);
         if (sell.price >= buy.price) {
           const sellQty = sell.quantity;
           const buyQty = buy.quantity;
+
           buy.quantity -= sellQty;
           sell.quantity -= buyQty;
           if (buy.quantity < 1e-4) { this._buys.pop(); }
@@ -71,13 +92,25 @@ class SafetyCalculator {
           break;
         }
       }
-      const computeSafety = t => t.reduce((sum, t) => sum + t.quantity, 0) / this._qlParams.latest.size;
+
+      /**
+       * @param {Array<Trade>} t Array of trades
+       * @return {Number} res Number of trades if the average size is _qaParams.latest.size
+       */
+      const computeSafety = t => {
+        return t.reduce((sum, t) => sum + t.quantity, 0) / this._qlParams.latest.size;
+      };
+
       this.latest = new Models.TradeSafety(computeSafety(this._buys), computeSafety(this._sells), computeSafety(this._buys.concat(this._sells)), buyPing, sellPong, this._timeProvider.utcNow());
     };
+
     _publisher.registerSnapshot(() => [ this.latest ]);
     _repo.NewParameters.on(_ => this.computeQtyLimit());
     _qlParams.NewParameters.on(_ => this.computeQtyLimit());
+
     _broker.Trade.on(this.onTrade);
+
+    // Loop every 1 second
     _timeProvider.setInterval(this.computeQtyLimit, moment.duration(1, 'seconds'));
   }
   get latest() { return this._latest; }

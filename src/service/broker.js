@@ -14,6 +14,7 @@ const _ = require('lodash');
 const Q = require('q');
 const moment = require('moment');
 const logging_1 = require('./logging');
+
 class MarketDataBroker {
   constructor(time, _mdGateway, rawMarketPublisher, persister, _messages) {
     this._mdGateway = _mdGateway;
@@ -39,6 +40,7 @@ class MarketDataBroker {
   get currentBook() { return this._currentBook; }
 }
 exports.MarketDataBroker = MarketDataBroker;
+
 class OrderStateCache {
   constructor() {
     this.allOrders = new Map();
@@ -46,6 +48,7 @@ class OrderStateCache {
   }
 }
 exports.OrderStateCache = OrderStateCache;
+
 class OrderBroker {
   constructor(_timeProvider, _baseBroker, _oeGateway, _orderPersister, _tradePersister, _orderStatusPublisher, _tradePublisher, _submittedOrderReciever, _cancelOrderReciever, _cancelAllOrdersReciever, _messages, _orderCache, initOrders, initTrades, _publishAllOrders) {
     this._timeProvider = _timeProvider;
@@ -357,6 +360,7 @@ class PositionBroker {
   }
 }
 exports.PositionBroker = PositionBroker;
+
 class ExchangeBroker {
   constructor(_pair, _mdGateway, _baseGateway, _oeGateway, _connectivityPublisher) {
     this._pair = _pair;
