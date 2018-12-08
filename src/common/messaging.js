@@ -23,7 +23,7 @@ class Publisher {
     };
     this.registerSnapshot(snapshot || null);
     const onConnection = s => {
-      this._log('socket', s.id, 'connected for Publisher', topic);
+     //   this._log('socket', s.id, 'connected for Publisher', topic);
       s.on('disconnect', () => {
         this._log('socket', s.id, 'disconnected for Publisher', topic);
       });
@@ -155,7 +155,7 @@ class Receiver {
       }
     };
     const onConnection = s => {
-      this._log('socket', s.id, 'connected for Receiver', topic);
+      // this._log('socket', s.id, 'connected for Receiver', topic);
       s.on(Prefixes.MESSAGE + '-' + this.topic, msg => {
         if (this._handler !== null) { this._handler(msg); }
       });

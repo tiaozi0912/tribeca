@@ -37,7 +37,7 @@ class QuoteSender {
       const quote = this._quotingEngine.latestQuote;
       let askStatus = Models.QuoteStatus.Held;
       let bidStatus = Models.QuoteStatus.Held;
-      debug('quote:', quote);
+      // debug('quote:', quote);
       // debug('activeRepo.latest:', this._activeRepo.latest);
 
       if (quote !== null && this._activeRepo.latest) {

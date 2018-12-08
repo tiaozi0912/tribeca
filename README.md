@@ -131,6 +131,10 @@ Tribeca also exposes a REST API of all it's data. It's all the same data you wou
 
 TODO:
 
+- Too many `fv`, `md`, `osr` (especially) saved in db
+
+- 把策略和trade联系起来，记载数据库中，便于同时跑多个策略时候可以分析
+
 1. Add new exchanges
 
 2. Add new, smarter trading strategies (as always!)

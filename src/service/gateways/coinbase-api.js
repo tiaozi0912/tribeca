@@ -36,7 +36,11 @@ exports.PublicClient.prototype = new function() {
   prototype.makeRequestCallback = function(callback) {
     return function(err, response, data) {
       if (typeof data === 'string') {
-        data = JSON.parse(data);
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          err = new Error(`data not proper json: ${data}`);
+        }
       }
       callback(err, response, data);
     };

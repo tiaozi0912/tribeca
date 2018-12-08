@@ -3,6 +3,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
 const Models = require('../common/models');
 const _ = require('lodash');
 const request = require('request');
+const fs = require('fs');
+const csv = require('fast-csv');
+
 require('events').EventEmitter.prototype._maxListeners = 100;
 exports.date = () => new Date();
 function fastDiff(x, y) {
@@ -107,4 +110,15 @@ function getJSON(url, qs) {
   });
 }
 exports.getJSON = getJSON;
-// # sourceMappingURL=utils.js.map
+
+function readFromCSV(path) {
+  const stream = fs.createReadStream(path);
+  const data = [];
+  return new Promise(resolve => {
+    csv
+      .fromStream(stream, { headers: true })
+      .on('data', d => data.push(d))
+      .on('end', () => resolve(data));
+  });
+}
+exports.readFromCSV = readFromCSV;

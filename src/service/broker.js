@@ -190,7 +190,7 @@ class OrderBroker {
       if (!this._oeGateway.cancelsByClientOrderId
                 && typeof o.exchangeId !== 'undefined'
                 && o.orderId in this._cancelsWaitingForExchangeOrderId) {
-        this._log.info('Deleting %s late, oid: %s', o.exchangeId, o.orderId);
+        // this._log.info('Deleting %s late, oid: %s', o.exchangeId, o.orderId);
         const cancel = this._cancelsWaitingForExchangeOrderId[o.orderId];
         delete this._cancelsWaitingForExchangeOrderId[o.orderId];
         this.cancelOrder(cancel);

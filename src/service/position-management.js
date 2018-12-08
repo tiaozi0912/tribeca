@@ -63,7 +63,7 @@ class TargetBasePositionManager {
       const latestPosition = this._positionBroker.latestReport;
       const params = this._params.latest;
 
-      debug('latest QuotingParameters:', params);
+      // debug('latest QuotingParameters:', params);
 
       if (params === null || latestPosition === null) { return; }
       let targetBasePosition = params.targetBasePosition;
