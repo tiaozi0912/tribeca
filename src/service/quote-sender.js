@@ -78,6 +78,16 @@ class QuoteSender {
       let askAction;
       if (askStatus === Models.QuoteStatus.Live) {
         debug('Update ask quote');
+        // quoter.updateQuote -> exchangeQuoter.updateQuote
+        // -> exchangeQuoter.modify(q) or start(q)
+        // start:
+        // - new SubmitNewOrder object and exchangeQuoter._broker<IOrderBroker>.sendOrder
+        // - new QuoteOrder object and push in the exchangeQuoter.quotesSent queue
+        // - set exchangeQuoter._activeQuote = quoteOrder
+        // modify:
+        // - exchangeQuoter._broker.cancelOrder
+        // - exchangeQuoter._activeQuote = null
+        // - call start
         askAction = this._quoter.updateQuote(new Models.Timestamped(quote.ask, t), Models.Side.Ask);
       } else {
         debug('Cancel ask quote');

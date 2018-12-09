@@ -145,6 +145,20 @@ TODO:
 
 5. More performant UI
 
-### Donations
+### How it works
 
-If you would like to support this project, please consider donating to 1BDpAKp8qqTA1ASXxK2ekk8b8metHcdTxj
+主函数是`main.js`里的`harness()`
+
+* Live模式
+
+调用`runTradingSystem()`, 主要看里面的`quotingEngine`, `quoteSender`。
+
+- 在`new QuotingEngine()`中:
+
+每`1s`调用`quotingEngine.recalcWithoutInputTime()`一次，计算quote。先获得一个`fair value`，和marketData, 再调用`quotingEngine.computeQuote(filteredMkt, fv)`。用当前缓存的`quote`和刚计算出来的新`quote`进行比较，只当新`quote`“更优”情况下更新缓存的quote。
+
+`quotingEngine.computeQuote(filteredMkt, fv)`: 根据设置的`mode`从`_registry`中选择一个`quoteStyle`，由`quoteStyle.GenerateQuote(input)`来生成一个unrounded的quote。这里可以灵活地添加不同的策略，生成新的`QuoteStyle`中，对应不同的`mode`。unrounded quote生成以后：
+
+-- 检测是否需要做`ewmaProtection`处理。
+
+-- 再根据`target base position`和设置中的`positionDivergence`参数， 检测当前的position是否偏离过大。如果已经偏离过大，就会把可能造成更大偏离的quote设成null。如果设置中的`aggressivePositionRebalancing`是`true`，触发rebalance, 调整仓位。

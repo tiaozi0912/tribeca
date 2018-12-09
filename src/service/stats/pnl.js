@@ -23,18 +23,35 @@ const time = {
   $gt: new Date('2018-12-08T13:00:00+0800'),
 };
 
+const newTradeFromCoinbaseData = d => {
+  const sideToCodeMapping = {
+    BUY: 0,
+    SELL: 1,
+  };
+  return {
+    tradeId: uuid1(),
+    side: sideToCodeMapping[d.side],
+    exchange,
+    pair: {
+      base: 1, quote: 0,
+    },
+    price: Number(d.price),
+    quantity: Number(d.size),
+    value: Math.abs(Number(d.total)),
+    time: new Date(d['created at']),
+    liquidity: 0,
+    feeCharged: Number(d.fee),
+  };
+};
+
 const compare = async () => {
   const sideMapping = [ 'BUY', 'SELL' ];
-  const sideToCodeMapping = {
-    'BUY': 0,
-    'SELL': 1
-  };
   const filePath = '/Users/yujunwu/Downloads/fills.csv';
   const data = await readFromCSV(filePath);
   const trades = await Trade.find({
     exchange, time,
   }).sort('time');
-  const index = 85;
+  // const index = 85;
   // data.splice(index, 1);
   for (let i = 0; trades[i]; i++) {
     const d = data[i];
@@ -47,21 +64,8 @@ const compare = async () => {
       debug('data:', d);
 
       // create data:
-      const newTradeData = {
-        tradeId: uuid1(),
-        side: sideToCodeMapping[d.side],
-        exchange,
-        pair: {
-          base: 1, quote: 0,
-        },
-        price: Number(d.price),
-        quantity: Number(d.size),
-        value: Math.abs(Number(d.total)),
-        time: new Date(d['created at']),
-        liquidity: 0,
-        feeCharged: Number(d.fee),
-      };
-      // await Trade.create(newTradeData);
+      const newTradeData = newTradeFromCoinbaseData(d);
+      await Trade.create(newTradeData);
       // debug('newTradeData:', newTradeData);
       // debug('trade:', trade);
       break;
