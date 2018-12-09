@@ -160,8 +160,12 @@ class QuotingEngine {
       return null;
     }
     if (params.mode === Models.QuotingMode.PingPong) {
-      if (unrounded.askSz && safety.buyPing && unrounded.askPx < safety.buyPing + params.width) { unrounded.askPx = safety.buyPing + params.width; }
-      if (unrounded.bidSz && safety.sellPong && unrounded.bidPx > safety.sellPong - params.width) { unrounded.bidPx = safety.sellPong - params.width; }
+      if (unrounded.askSz && safety.buyPing && unrounded.askPx < safety.buyPing + params.width) {
+        unrounded.askPx = safety.buyPing + params.width;
+      }
+      if (unrounded.bidSz && safety.sellPong && unrounded.bidPx > safety.sellPong - params.width) {
+        unrounded.bidPx = safety.sellPong - params.width;
+      }
     }
     if (safety.sell > params.tradesPerMinute) {
       unrounded.askPx = null;
@@ -171,6 +175,7 @@ class QuotingEngine {
       unrounded.bidPx = null;
       unrounded.bidSz = null;
     }
+
     if (unrounded.bidPx !== null) {
       unrounded.bidPx = Utils.roundSide(unrounded.bidPx, minTick, Models.Side.Bid);
       unrounded.bidPx = Math.max(0, unrounded.bidPx);

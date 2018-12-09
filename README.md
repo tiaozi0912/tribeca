@@ -157,8 +157,27 @@ TODO:
 
 * 每1s调用`quotingEngine.recalcWithoutInputTime()`一次，计算quote。先获得一个`fair value`，和marketData, 再调用`quotingEngine.computeQuote(filteredMkt, fv)`。用当前缓存的quote和刚计算出来的新quote进行比较，只当新quote“更优”情况下更新缓存的quote。
 
-* `quotingEngine.computeQuote(filteredMkt, fv)`: 根据设置的`mode`从`_registry`中选择一个`quoteStyle`，由`quoteStyle.GenerateQuote(input)`来生成一个unrounded的quote。这里可以灵活地添加不同的策略，生成新的`QuoteStyle`中，对应不同的`mode`。unrounded quote生成以后：
+* `quotingEngine.computeQuote(filteredMkt, fv)`: 根据设置的`mode`从`_registry`中选择一个`quoteStyle`，由`quoteStyle.GenerateQuote(input)`来生成一个unrounded的quote。这里可以灵活地添加不同的策略，放到`QuoteStyle`中，对应不同的`mode`。unrounded quote生成以后：
 
   - 检测是否需要做`ewmaProtection`处理。
 
   - 再根据`target base position`和设置中的`positionDivergence`参数， 检测当前的position是否偏离过大。如果已经偏离过大，就会把可能造成更大偏离的quote设成null。如果设置中的`aggressivePositionRebalancing`是`true`，触发rebalance, 调整仓位。
+
+  - 进行safety check。safety的相关数据是从成交的trades获得。如果`safety.sell`或`safety.buy`已经大于设置中的`tradesPerMinute`参数, 把相应方向的quote设成null。对于`PingPong`模式，需要检测quote的price，不要让ask的price过低或者bid的price过高。
+
+  - 根据报价和单子size的精度，对quote进行round down。
+
+* 在`latestQuote`的setter中，触发`quotingEngine.QuoteChanged`事件。
+
+在`new QuoteSender()`中:
+
+* 监听`quotingEngine.QuoteChanged`事件，回掉`quoteSender.sendQuote()`。
+
+* `quoteSender.sendQuote()`：
+
+  - 检测是否有足够对应的position
+
+  - 检测是否是crossed quote
+
+  - 如果都通过了以上检测，状态从Held改到Live。调用`quoter.updateQuote()`, 继而调用 `exchangeQuoter.updateQuote`。在`exchangeQuoter.updateQuote`中，根据exchangeQuoter._activeQuote调用exchangeQuoter.modify(q)或start(q)。start会把quote通过 `exchangeQuoter._broker<IOrderBroker>.sendOrder` 发给交易所。而modify会取消之前quote对应的在交易所上的挂单，再重新调用start
+  
