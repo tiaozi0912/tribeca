@@ -267,6 +267,7 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
   }, 'using the following exchange details');
 
   const orderBroker = new Broker.OrderBroker(timeProvider, broker, gateway.oe, orderPersister, tradesPersister, orderStatusPublisher, tradePublisher, submitOrderReceiver, cancelOrderReceiver, cancelAllOrdersReceiver, messages, orderCache, initOrders, initTrades, shouldPublishAllOrders);
+
   const marketDataBroker = new Broker.MarketDataBroker(timeProvider, gateway.md, marketDataPublisher, marketDataPersister, messages);
   const positionBroker = new Broker.PositionBroker(timeProvider, broker, gateway.pg, positionPublisher, positionPersister, marketDataBroker);
   const paramsRepo = new QuotingParameters.QuotingParametersRepository(quotingParametersPublisher, quotingParametersReceiver, initParams);
@@ -282,6 +283,7 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
   const active = new Active.ActiveRepository(startQuoting, broker, activePublisher, activeReceiver);
 
   const quoter = new Quoter.Quoter(orderBroker, broker);
+
   const filtration = new MarketFiltration.MarketFiltration(broker, new Utils.ImmediateActionScheduler(timeProvider), quoter, marketDataBroker);
   const fvEngine = new FairValue.FairValueEngine(broker, timeProvider, filtration, paramsRepo, fvPublisher, fairValuePersister);
   const ewma = new Statistics.ObservableEWMACalculator(timeProvider, fvEngine, initParams.quotingEwma);

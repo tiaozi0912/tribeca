@@ -151,7 +151,7 @@ TODO:
 
 #### Live模式
 
-调用`runTradingSystem()`, 主要看里面的`quotingEngine`, `quoteSender`。
+调用`runTradingSystem()`, 主要看里面的`quoter`, `orderBroker`, `quotingEngine`, `quoteSender`。
 
 在`new QuotingEngine()`中:
 
@@ -171,7 +171,7 @@ TODO:
 
 在`new QuoteSender()`中:
 
-* 监听`quotingEngine.QuoteChanged`事件，回掉`quoteSender.sendQuote()`。
+* 监听`quotingEngine.QuoteChanged`事件，回调`quoteSender.sendQuote()`。
 
 * `quoteSender.sendQuote()`：
 
@@ -179,5 +179,12 @@ TODO:
 
   - 检测是否是crossed quote
 
-  - 如果都通过了以上检测，状态从Held改到Live。调用`quoter.updateQuote()`, 继而调用 `exchangeQuoter.updateQuote`。在`exchangeQuoter.updateQuote`中，根据exchangeQuoter._activeQuote调用exchangeQuoter.modify(q)或start(q)。start会把quote通过 `exchangeQuoter._broker<IOrderBroker>.sendOrder` 发给交易所。而modify会取消之前quote对应的在交易所上的挂单，再重新调用start
-  
+  - 如果都通过了以上检测，状态从Held改到Live。调用`quoter.updateQuote()`, 继而调用 `exchangeQuoter.updateQuote`。在`exchangeQuoter.updateQuote`中，根据`exchangeQuoter._activeQuote`调用exchangeQuoter.modify(q)或start(q)。start会把quote通过 `exchangeQuoter._broker<IOrderBroker>.sendOrder`发给交易所。而modify会取消之前quote对应的在交易所上的挂单，再重新调用start
+
+  - 如果未通过以上检测，则取消之前quote对应的在交易所的挂单。
+
+在`new Quoter()`中：
+
+* 初始化bid和ask的两个ExchangeQuoter instances
+
+* exchangeQuoter中监听`orderBroker.OrderUpdate`事件，回调`exchangeQuoter.handleOrderUpdate`。 把`exchangeQuoter._activeQuote`设为null，并在quotesSent的数组里面删掉对应的quote。

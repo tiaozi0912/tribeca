@@ -148,7 +148,7 @@ class QuotingEngine {
       unrounded.bidPx = null;
       unrounded.bidSz = null;
       if (params.aggressivePositionRebalancing) {
-        this._log.info('aggressive position rebalancing triggered');
+        // this._log.info('aggressive position rebalancing triggered');
         unrounded.askSz = Math.min(params.aprMultiplier * params.size, totalBasePosition - targetBasePosition);
       }
     }

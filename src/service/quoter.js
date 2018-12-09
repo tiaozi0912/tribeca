@@ -46,15 +46,20 @@ class ExchangeQuoter {
     this._activeQuote = null;
     this.quotesSent = [];
     this.handleOrderUpdate = o => {
+      const bySide = this._activeQuote;
       switch (o.orderStatus) {
         case Models.OrderStatus.Cancelled:
+          break;
         case Models.OrderStatus.Complete:
+          break;
         case Models.OrderStatus.Rejected:
-          const bySide = this._activeQuote;
           if (bySide !== null && bySide.orderId === o.orderId) {
             this._activeQuote = null;
           }
           this.quotesSent = this.quotesSent.filter(q => q.orderId !== o.orderId);
+          break;
+        default:
+          break;
       }
     };
     this.updateQuote = q => {
