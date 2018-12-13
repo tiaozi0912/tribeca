@@ -9,7 +9,7 @@ const __awaiter = (this && this.__awaiter) || function(thisArg, _arguments, P, g
 };
 Object.defineProperty(exports, '__esModule', { value: true });
 const _ = require('lodash');
-
+const process = require('process');
 const util = require('util');
 const moment = require('moment');
 const request = require('request');
@@ -277,10 +277,13 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
 
   // If true, submit the quote to exchange
   // Otherwise the quote will not be live
-  initActive.active = true;
-  initActive.time = new Date();
+  if (process.env.NODE_ENV !== 'dev') {
+    initActive.active = true;
+    initActive.time = new Date();
+  }
   const startQuoting = (moment(timeProvider.utcNow()).diff(moment(initActive.time), 'minutes') < 3 && initActive.active);
   const active = new Active.ActiveRepository(startQuoting, broker, activePublisher, activeReceiver);
+  debug('active:', active);
 
   const quoter = new Quoter.Quoter(orderBroker, broker);
 

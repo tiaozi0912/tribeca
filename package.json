@@ -77,7 +77,8 @@
     "mocha": "^3.2.0"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "dev": "NODE_ENV=dev node src/service/main.js"
   },
   "repository": "git@github.com:michaelgrosner/tribeca.git",
   "author": "Michael Grosner",
