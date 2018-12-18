@@ -10,14 +10,18 @@ const __awaiter = (this && this.__awaiter) || function(thisArg, _arguments, P, g
 Object.defineProperty(exports, '__esModule', { value: true });
 const _ = require('lodash');
 const mongodb = require('mongodb');
+const ObjectId = mongodb.ObjectId;
 const moment = require('moment');
 const logging_1 = require('./logging');
+const debug = require('debug')('tribeca:persister');
+
 function loadDb(config) {
   return mongodb.MongoClient.connect(config.GetString('MongoDbUrl'));
 }
 
 exports.loadDb = loadDb;
 
+// Handle single doc from the database
 class RepositoryPersister {
   constructor(collection, _defaultParameter, _dbName, _exchange, _pair) {
     this.collection = collection;
@@ -30,13 +34,45 @@ class RepositoryPersister {
       const selector = { exchange: this._exchange, pair: this._pair };
       const docs = yield this.collection.find(selector)
         .limit(1)
-        .project({ _id: 0 })
+        // .project({ _id: 0 })
         .sort({ $natural: -1 })
         .toArray();
-      if (docs.length === 0) { return this._defaultParameter; }
+
+      if (docs.length === 0) {
+        return this._defaultParameter;
+      }
       const v = _.defaults(docs[0], this._defaultParameter);
       return this.converter(v);
     });
+    // this.findById = async _id => {
+    //   if (typeof _id === 'string') {
+    //     _id = new ObjectId(_id);
+    //   }
+    //   const selector = { _id };
+    //   const docs = await this.collection.find(selector)
+    //     .limit(1)
+    //     .toArray();
+    //   if (docs.length === 0) {
+    //     return this._defaultParameter;
+    //   }
+    //   const v = _.defaults(docs[0], this._defaultParameter);
+    //   return this.converter(v);
+    // };
+    this.findById = _id => __awaiter(this, void 0, void 0, function* () {
+      if (typeof _id === 'string') {
+        _id = new ObjectId(_id);
+      }
+      const selector = { _id };
+      const docs = yield this.collection.find(selector)
+        .limit(1)
+        .toArray();
+      if (docs.length === 0) {
+        return this._defaultParameter;
+      }
+      const v = _.defaults(docs[0], this._defaultParameter);
+      return this.converter(v);
+    });
+
     this.persist = report => __awaiter(this, void 0, void 0, function* () {
       try {
         yield this.collection.insertOne(this.converter(report));
@@ -54,6 +90,7 @@ class RepositoryPersister {
 }
 exports.RepositoryPersister = RepositoryPersister;
 
+//  Handle list of docs from the database
 class Persister {
   constructor(time, collection, _dbName, _exchange, _pair) {
     this.collection = collection;

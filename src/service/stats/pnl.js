@@ -27,8 +27,12 @@ const ASK_SIDE = 1;
 //   $gt: new Date('2018-12-11T00:00:00+0800'),
 //   $lt: new Date('2018-12-13T00:00:00+0800'),
 // };
+// const time = {
+//   $gt: new Date('2018-12-13T00:00:00+0800'),
+//   $lt: new Date('2018-12-17T00:00:00+0800'),
+// };
 const time = {
-  $gt: new Date('2018-12-13T00:00:00+0800'),
+  $gt: new Date('2018-12-17T15:00:00+0800'),
 };
 
 const newTradeFromCoinbaseData = d => {

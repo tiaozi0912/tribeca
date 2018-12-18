@@ -376,11 +376,17 @@ class CoinbaseOrderEntryGateway {
           case Models.TimeInForce.IOC:
             o.time_in_force = 'IOC';
             break;
+          default:
+            break;
         }
       } else if (order.type === Models.OrderType.Market) {
         o.type = 'market';
       }
-      if (order.side === Models.Side.Bid) { this._authClient.buy(o, cb); } else if (order.side === Models.Side.Ask) { this._authClient.sell(o, cb); }
+      if (order.side === Models.Side.Bid) {
+        this._authClient.buy(o, cb);
+      } else if (order.side === Models.Side.Ask) {
+        this._authClient.sell(o, cb);
+      }
       this.OrderUpdate.trigger({
         orderId: order.orderId,
         computationalLatency: Utils.fastDiff(new Date(), order.time),
@@ -546,7 +552,9 @@ function createCoinbase(config, orders, timeProvider, pair) {
     const products = yield d.promise;
     const symbolProvider = new CoinbaseSymbolProvider(pair);
     for (const p of products) {
-      if (p.id === symbolProvider.symbol) { return new Coinbase(authClient, config, orders, timeProvider, symbolProvider, parseFloat(p.quote_increment)); }
+      if (p.id === symbolProvider.symbol) {
+        return new Coinbase(authClient, config, orders, timeProvider, symbolProvider, parseFloat(p.quote_increment));
+      }
     }
     throw new Error('unable to match pair to a coinbase symbol ' + pair.toString());
   });

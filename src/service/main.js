@@ -192,6 +192,8 @@ const liveTradingSetup = () => {
 };
 
 const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* () {
+  const paramsId = process.env.PARAMS_ID;
+
   debug('Start runTradingSystem');
 
   const getPersister = classes.getPersister;
@@ -219,7 +221,7 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
     tradesPersister.loadAll(10000),
     mktTradePersister.loadAll(100),
     messagesPersister.loadAll(50),
-    paramsPersister.loadLatest(),
+    paramsId ? paramsPersister.findById(paramsId) : paramsPersister.loadLatest(),
     activePersister.loadLatest(),
     rfvPersister.loadAll(50),
   ]);
@@ -230,9 +232,13 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
   const orderCache = new Broker.OrderStateCache();
   const timeProvider = classes.timeProvider;
   const getPublisher = classes.getPublisher;
+
   const gateway = yield classes.getExch(orderCache);
+
   const advert = new Models.ProductAdvertisement(exchange, pair, config.GetString('TRIBECA_MODE'), gateway.base.minTickIncrement);
   getPublisher(Messaging.Topics.ProductAdvertisement).registerSnapshot(() => [ advert ]).publish(advert);
+
+  // Initialize publishers
   const quotePublisher = getPublisher(Messaging.Topics.Quote);
   const fvPublisher = getPublisher(Messaging.Topics.FairValue, fairValuePersister);
   const marketDataPublisher = getPublisher(Messaging.Topics.MarketData, marketDataPersister);
@@ -249,12 +255,22 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
   const connectivity = getPublisher(Messaging.Topics.ExchangeConnectivity);
   const messages = new Messages.MessagesPubisher(timeProvider, messagesPersister, initMsgs, messagesPublisher);
   messages.publish('start up');
+  // Initialize publishers done
+
+  // Initialize receivers
   const getReceiver = classes.getReceiver;
   const activeReceiver = getReceiver(Messaging.Topics.ActiveChange);
   const quotingParametersReceiver = getReceiver(Messaging.Topics.QuotingParametersChange);
   const submitOrderReceiver = getReceiver(Messaging.Topics.SubmitNewOrder);
   const cancelOrderReceiver = getReceiver(Messaging.Topics.CancelOrder);
   const cancelAllOrdersReceiver = getReceiver(Messaging.Topics.CancelAllOrders);
+  // Initialize receivers
+
+  debug('params:', initParams);
+  const paramsRepo = new QuotingParameters.QuotingParametersRepository(quotingParametersPublisher, quotingParametersReceiver, initParams);
+  paramsRepo.NewParameters.on(() => paramsPersister.persist(paramsRepo.latest));
+
+  // Init brokers
   const broker = new Broker.ExchangeBroker(pair, gateway.md, gateway.base, gateway.oe, connectivity);
 
   mainLog.info({
@@ -266,12 +282,10 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
     hasSelfTradePrevention: broker.hasSelfTradePrevention,
   }, 'using the following exchange details');
 
-  const orderBroker = new Broker.OrderBroker(timeProvider, broker, gateway.oe, orderPersister, tradesPersister, orderStatusPublisher, tradePublisher, submitOrderReceiver, cancelOrderReceiver, cancelAllOrdersReceiver, messages, orderCache, initOrders, initTrades, shouldPublishAllOrders);
-
+  const orderBroker = new Broker.OrderBroker(timeProvider, broker, gateway.oe, orderPersister, tradesPersister, orderStatusPublisher, tradePublisher, submitOrderReceiver, cancelOrderReceiver, cancelAllOrdersReceiver, messages, orderCache, initOrders, initTrades, shouldPublishAllOrders, paramsRepo);
   const marketDataBroker = new Broker.MarketDataBroker(timeProvider, gateway.md, marketDataPublisher, marketDataPersister, messages);
   const positionBroker = new Broker.PositionBroker(timeProvider, broker, gateway.pg, positionPublisher, positionPersister, marketDataBroker);
-  const paramsRepo = new QuotingParameters.QuotingParametersRepository(quotingParametersPublisher, quotingParametersReceiver, initParams);
-  paramsRepo.NewParameters.on(() => paramsPersister.persist(paramsRepo.latest));
+  // Init brokers done
 
   const safetyCalculator = new Safety.SafetyCalculator(timeProvider, paramsRepo, orderBroker, paramsRepo, tradeSafetyPublisher, tsvPersister);
 
@@ -283,7 +297,6 @@ const runTradingSystem = classes => __awaiter(this, void 0, void 0, function* ()
   }
   const startQuoting = (moment(timeProvider.utcNow()).diff(moment(initActive.time), 'minutes') < 3 && initActive.active);
   const active = new Active.ActiveRepository(startQuoting, broker, activePublisher, activeReceiver);
-  debug('active:', active);
 
   const quoter = new Quoter.Quoter(orderBroker, broker);
 

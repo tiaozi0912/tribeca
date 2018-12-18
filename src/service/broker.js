@@ -14,6 +14,7 @@ const _ = require('lodash');
 const Q = require('q');
 const moment = require('moment');
 const logging_1 = require('./logging');
+const debug = require('debug')('tribeca:broker');
 
 class MarketDataBroker {
   constructor(time, _mdGateway, rawMarketPublisher, persister, _messages) {
@@ -50,7 +51,8 @@ class OrderStateCache {
 exports.OrderStateCache = OrderStateCache;
 
 class OrderBroker {
-  constructor(_timeProvider, _baseBroker, _oeGateway, _orderPersister, _tradePersister, _orderStatusPublisher, _tradePublisher, _submittedOrderReciever, _cancelOrderReciever, _cancelAllOrdersReciever, _messages, _orderCache, initOrders, initTrades, _publishAllOrders) {
+  constructor(_timeProvider, _baseBroker, _oeGateway, _orderPersister, _tradePersister, _orderStatusPublisher, _tradePublisher, _submittedOrderReciever, _cancelOrderReciever, _cancelAllOrdersReciever, _messages, _orderCache, initOrders, initTrades, _publishAllOrders, _paramsRepo) {
+    this._paramsRepo = _paramsRepo;
     this._timeProvider = _timeProvider;
     this._baseBroker = _baseBroker;
     this._oeGateway = _oeGateway;
@@ -126,6 +128,8 @@ class OrderBroker {
       this._oeGateway.cancelOrder(this.updateOrderState(report));
     };
     this.updateOrderState = osr => {
+      const settings = this._paramsRepo.latest;
+
       let orig;
       if (osr.orderStatus === Models.OrderStatus.New) {
         orig = osr;
@@ -157,6 +161,9 @@ class OrderBroker {
         cumQuantity = getOrFallback(orig.cumQuantity, 0) + getOrFallback(osr.lastQuantity, 0);
       }
       const partiallyFilled = cumQuantity > 0 && cumQuantity !== quantity;
+
+      // @TODO:
+      // Save params to the orderStatusReport
       const o = {
         pair: getOrFallback(osr.pair, orig.pair),
         side: getOrFallback(osr.side, orig.side),
@@ -184,6 +191,7 @@ class OrderBroker {
         cancelRejected: osr.cancelRejected,
         preferPostOnly: getOrFallback(osr.preferPostOnly, orig.preferPostOnly),
         source: getOrFallback(osr.source, orig.source),
+        paramsId: settings._id,
       };
       const added = this.updateOrderStatusInMemory(o);
       if (this._log.debug()) { this._log.debug(o, (added ? 'added' : 'removed') + ' order status'); }
@@ -196,7 +204,10 @@ class OrderBroker {
         this.cancelOrder(cancel);
       }
       this.OrderUpdate.trigger(o);
+
+      // Save to database
       this._orderPersister.persist(o);
+
       if (this.shouldPublish(o)) { this._orderStatusPublisher.publish(o); }
       if (osr.lastQuantity > 0) {
         let value = Math.abs(o.lastPrice * o.lastQuantity);

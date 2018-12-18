@@ -6,6 +6,7 @@ const logging_1 = require('./logging');
 const path = require('path');
 const compression = require('compression');
 const mainLog = logging_1.default('tribeca:main');
+const process = require('process');
 
 module.exports = config => {
   const app = express();
@@ -19,7 +20,7 @@ module.exports = config => {
   }
   app.use(compression());
   app.use(express.static(path.join(__dirname, 'admin')));
-  const webport = config.GetNumber('WebClientListenPort');
+  const webport = process.env.SERVER_PORT || config.GetNumber('WebClientListenPort');
 
   httpServer.listen(webport, () => mainLog.info('Listening to admins on *:', webport));
 

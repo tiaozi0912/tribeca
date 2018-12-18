@@ -78,7 +78,9 @@
   },
   "scripts": {
     "test": "mocha",
-    "dev": "NODE_ENV=dev node src/service/main.js"
+    "start": "DEBUG=tribeca* node src/service/main.js",
+    "dev": "DEBUG=tribeca* NODE_ENV=dev SERVER_PORT=5000 node src/service/main.js",
+    "pnl": "DEBUG=tribeca* node src/service/stats/pnl.js"
   },
   "repository": "git@github.com:michaelgrosner/tribeca.git",
   "author": "Michael Grosner",
